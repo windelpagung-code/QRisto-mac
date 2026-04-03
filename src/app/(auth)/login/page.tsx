@@ -1,20 +1,38 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { QrCode, Eye, EyeOff, ArrowRight, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate login
-    await new Promise(r => setTimeout(r, 1000));
-    window.location.href = '/dashboard';
+    setError('');
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setError('Email ou senha incorretos.');
+      setLoading(false);
+      return;
+    }
+
+    router.push('/dashboard');
+    router.refresh();
   };
 
   return (
@@ -22,7 +40,6 @@ export default function LoginPage() {
       {/* Left: Form */}
       <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-md">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 mb-10">
             <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
               <QrCode size={16} className="text-white" />
@@ -35,8 +52,15 @@ export default function LoginPage() {
             <p className="text-slate-400 mt-2">Entre na sua conta para gerir o menu</p>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
+              name="email"
               label="Email"
               type="email"
               placeholder="seu@restaurante.com"
@@ -44,6 +68,7 @@ export default function LoginPage() {
               leftIcon={<Mail size={16} />}
             />
             <Input
+              name="password"
               label="Senha"
               type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
@@ -71,25 +96,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6">
-            <div className="relative flex items-center">
-              <div className="flex-1 border-t border-white/10" />
-              <span className="px-4 text-sm text-slate-500">ou continue com</span>
-              <div className="flex-1 border-t border-white/10" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              {['Google', 'Apple'].map(provider => (
-                <button
-                  key={provider}
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-slate-300 hover:bg-white/10 transition-colors"
-                >
-                  {provider}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <p className="mt-8 text-center text-sm text-slate-400">
             Não tem conta?{' '}
             <Link href="/register" className="text-green-400 hover:text-green-300 font-medium">
@@ -101,7 +107,6 @@ export default function LoginPage() {
 
       {/* Right: Visual */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-500/10 to-blue-500/5 items-center justify-center p-12 border-l border-white/8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
         <div className="relative text-center max-w-md">
           <div className="w-20 h-20 rounded-3xl bg-green-500/20 border border-green-500/30 flex items-center justify-center mx-auto mb-8">
             <QrCode size={40} className="text-green-400" />
