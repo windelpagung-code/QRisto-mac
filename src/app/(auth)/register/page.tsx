@@ -36,13 +36,7 @@ export default function RegisterPage() {
       email: formData.email,
       password: formData.password,
       options: {
-        data: {
-          full_name: formData.name,
-          restaurant_name: formData.restaurantName,
-          country: formData.country,
-          city: formData.city,
-          plan: formData.plan,
-        },
+        data: { full_name: formData.name },
       },
     });
 
@@ -53,9 +47,33 @@ export default function RegisterPage() {
     }
 
     if (data.user && !data.session) {
-      // Email confirmation required
       router.push('/login?confirm=true');
       return;
+    }
+
+    if (data.user) {
+      // Criar registo do restaurante
+      const slug = formData.restaurantName
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        + '-' + Math.random().toString(36).slice(2, 6);
+
+      const { error: restaurantError } = await supabase.from('restaurants').insert({
+        user_id: data.user.id,
+        name: formData.restaurantName,
+        slug,
+        country: formData.country,
+        city: formData.city,
+        plan: formData.plan,
+        plan_status: 'trialing',
+      });
+
+      if (restaurantError) {
+        setError('Conta criada mas erro ao guardar restaurante. Contacte o suporte.');
+        setLoading(false);
+        return;
+      }
     }
 
     router.push('/dashboard');
@@ -118,14 +136,17 @@ export default function RegisterPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { id: 'starter', name: 'Starter', price: '€19/mês', features: '1 restaurante' },
-                    { id: 'elite', name: 'Elite', price: '€39/mês', features: 'Filiais + IA', highlight: true },
+                    { id: 'elite', name: 'Elite', price: '€39/mês', features: 'Filiais + IA' },
                   ].map(plan => (
-                    <label key={plan.id} className={`p-4 rounded-xl border cursor-pointer transition-all ${formData.plan === plan.id ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-white/5'}`}>
-                      <input type="radio" name="plan" value={plan.id} className="hidden" checked={formData.plan === plan.id} onChange={handleChange} />
+                    <div
+                      key={plan.id}
+                      onClick={() => setFormData(prev => ({ ...prev, plan: plan.id }))}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all ${formData.plan === plan.id ? 'border-green-500 bg-green-500/10 ring-1 ring-green-500/30' : 'border-white/10 bg-white/5 hover:border-white/20'}`}
+                    >
                       <p className="font-semibold text-white text-sm">{plan.name}</p>
                       <p className="text-green-400 text-sm font-bold mt-1">{plan.price}</p>
                       <p className="text-xs text-slate-400 mt-0.5">{plan.features}</p>
-                    </label>
+                    </div>
                   ))}
                 </div>
               </div>
