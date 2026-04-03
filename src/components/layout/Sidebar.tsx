@@ -1,12 +1,13 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, UtensilsCrossed, QrCode, BarChart3,
   Building2, Settings, LogOut, Crown, ChevronRight, Zap, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockRestaurant } from '@/lib/mock-data';
+import { useRestaurant } from '@/lib/hooks/useRestaurant';
+import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -24,20 +25,23 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const restaurant = mockRestaurant;
-  const isElite = restaurant.plan === 'elite';
+  const router = useRouter();
+  const { restaurant, loading } = useRestaurant();
+  const isElite = restaurant?.plan === 'elite';
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   return (
     <>
-      {/* Mobile overlay */}
       {open && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={onClose} />
       )}
 
-      {/* Sidebar */}
       <aside className={cn(
         'fixed top-0 left-0 h-full w-64 bg-[#0a1628] border-r border-white/8 flex flex-col z-50 transition-transform duration-300',
         'lg:translate-x-0 lg:static lg:z-auto',
@@ -63,7 +67,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <span className="text-lg">🍕</span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{restaurant.name}</p>
+              {loading ? (
+                <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+              ) : (
+                <p className="text-sm font-semibold text-white truncate">{restaurant?.name ?? 'Meu Restaurante'}</p>
+              )}
               <div className="flex items-center gap-1 mt-0.5">
                 {isElite ? (
                   <span className="flex items-center gap-1 text-xs text-yellow-400">
@@ -114,7 +122,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         {/* Upgrade Banner (Starter only) */}
-        {!isElite && (
+        {!loading && !isElite && (
           <div className="m-3 p-4 rounded-xl bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20">
             <div className="flex items-center gap-2 mb-2">
               <Zap size={14} className="text-yellow-400" />
@@ -132,7 +140,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="p-3 border-t border-white/8">
-          <button className="flex items-center gap-3 px-3 py-2.5 w-full text-slate-400 hover:text-red-400 hover:bg-red-500/5 rounded-xl text-sm transition-colors">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 w-full text-slate-400 hover:text-red-400 hover:bg-red-500/5 rounded-xl text-sm transition-colors"
+          >
             <LogOut size={18} />
             Sair
           </button>

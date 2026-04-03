@@ -1,11 +1,11 @@
 'use client';
 import { Bell, Menu, Globe, ExternalLink, LogOut } from 'lucide-react';
-import { mockRestaurant } from '@/lib/mock-data';
 import { getInitials } from '@/lib/utils';
 import Link from 'next/link';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useRestaurant } from '@/lib/hooks/useRestaurant';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick, title }: HeaderProps) {
-  const restaurant = mockRestaurant;
+  const { restaurant } = useRestaurant();
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
 
@@ -41,7 +41,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
 
       <div className="flex items-center gap-2">
         <Link
-          href={`/menu/${restaurant.slug}`}
+          href={restaurant ? `/menu/${restaurant.slug}` : '#'}
           target="_blank"
           className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-green-400 hover:bg-green-500/10 border border-white/10 hover:border-green-500/20 transition-all"
         >
@@ -61,7 +61,7 @@ export function Header({ onMenuClick, title }: HeaderProps) {
             onClick={() => setMenuOpen(!menuOpen)}
             className="w-8 h-8 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center text-xs font-bold text-green-400"
           >
-            {getInitials(restaurant.name)}
+            {getInitials(restaurant?.name ?? 'R')}
           </button>
 
           {menuOpen && (
